@@ -8,12 +8,12 @@ const register = async (req, res) => {
     const { business_name, email, password } = req.body;
 
     // Check if user exists
-    const [existingUser] = await pool.query(
-      'SELECT * FROM users WHERE business_name = ? OR email = ?',
+    const { rows: existingUsers } = await pool.query(
+      'SELECT * FROM users WHERE business_name = $1 OR email = $2',
       [business_name, email]
     );
 
-    if (existingUser.length > 0) {
+    if (existingUsers.length > 0) {
       return res.status(400).json({ message: 'Business or email already exists' });
     }
 
@@ -22,12 +22,12 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
-    const [result] = await pool.query(
-      'INSERT INTO users (business_name, email, password) VALUES (?, ?, ?)',
+    const { rows: createdUsers } = await pool.query(
+      'INSERT INTO users (business_name, email, password) VALUES ($1, $2, $3) RETURNING id',
       [business_name, email, hashedPassword]
     );
 
-    const userId = result.insertId;
+    const userId = createdUsers[0].id;
 
     // Create token
     const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -44,8 +44,8 @@ const login = async (req, res) => {
     const { business_name, password } = req.body;
 
     // Find user
-    const [users] = await pool.query(
-      'SELECT * FROM users WHERE business_name = ?',
+    const { rows: users } = await pool.query(
+      'SELECT * FROM users WHERE business_name = $1',
       [business_name]
     );
 
