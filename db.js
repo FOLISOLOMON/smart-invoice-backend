@@ -6,4 +6,12 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+pool.on('connect', () => {
+  console.log('✅ Connected to the PostgreSQL database');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Unexpected error on idle PostgreSQL client:', err);
+});
+
 module.exports = pool;

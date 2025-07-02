@@ -7,6 +7,10 @@ const register = async (req, res) => {
   try {
     const { business_name, email, password } = req.body;
 
+    if (!business_name || !email || !password) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
     // Check if user exists
     const { rows: existingUsers } = await pool.query(
       'SELECT * FROM users WHERE business_name = $1 OR email = $2',
@@ -27,6 +31,10 @@ const register = async (req, res) => {
       [business_name, email, hashedPassword]
     );
 
+    if (createdUsers.length === 0) {
+      return res.status(500).json({ message: 'Failed to create user' });
+    }
+
     const userId = createdUsers[0].id;
 
     // Create token
@@ -34,17 +42,21 @@ const register = async (req, res) => {
 
     res.status(201).json({ token, userId });
   } catch (err) {
-    console.error(err);
+    console.error('Registration error:', err);
     res.status(500).json({ message: 'Server error during registration' });
   }
 };
+
 
 const login = async (req, res) => {
   try {
     const { business_name, password } = req.body;
 
-    // Find user
-    await pool.query('SELECT * FROM invoices WHERE user_id = $1', [req.userId]);
+    // Find user by business name
+    const { rows: users } = await pool.query(
+      'SELECT * FROM users WHERE business_name = $1',
+      [business_name]
+    );
 
     if (users.length === 0) {
       return res.status(400).json({ message: 'Invalid credentials' });

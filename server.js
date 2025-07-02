@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const invoiceRoutes = require('./routes/invoices');
-const { verifyToken } = require('./middleware/auth');
 
 const app = express();
 
@@ -13,7 +12,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api', authRoutes);
-app.use('/api/invoices', verifyToken, invoiceRoutes);
+app.use('/api/invoices', invoiceRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
