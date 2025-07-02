@@ -7,7 +7,9 @@ const invoiceRoutes = require('./routes/invoices');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://smart-invoice-frontend-tau.vercel.app'
+}));
 app.use(express.json());
 
 // Routes
