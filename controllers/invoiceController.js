@@ -62,7 +62,7 @@ const getAllInvoices = async (req, res) => {
     const { userId } = req;
 
     const [invoices] = await pool.query(
-      'SELECT * FROM invoices WHERE user_id = ? ORDER BY date DESC',
+      'SELECT * FROM invoices WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
     );
 
