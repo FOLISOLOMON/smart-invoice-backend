@@ -14,4 +14,6 @@ pool.on('error', (err) => {
   console.error('❌ Unexpected error on idle PostgreSQL client:', err);
 });
 
+console.log('Connecting to:', process.env.DATABASE_URL);
+
 module.exports = pool;

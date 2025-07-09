@@ -337,10 +337,101 @@ const sendInvoice = async (req, res) => {
     res.status(500).json({ message: 'Error preparing invoice to send' });
   }
 };
+const deleteInvoice = async (req, res) => {
+  const userId = req.userId;
+  const invoiceId = req.params.id;
+
+  try {
+    // First delete invoice items (foreign key constraint)
+    await pool.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
+
+    // Then delete invoice itself
+    await pool.query('DELETE FROM invoices WHERE id = $1 AND user_id = $2', [invoiceId, userId]);
+
+    res.json({ message: 'Invoice deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting invoice:', err);
+    res.status(500).json({ message: 'Error deleting invoice' });
+  }
+};
+
+const updateInvoice = async (req, res) => {
+  const userId = req.userId;
+  const invoiceId = req.params.id;
+  const {
+    invoice_number,
+    client_name,
+    client_email,
+    date,
+    due_date,
+    subtotal,
+    tax,
+    total_amount,
+    notes,
+    items
+  } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Update the invoice
+    await client.query(
+      `UPDATE invoices SET 
+        invoice_number = $1,
+        client_name = $2,
+        client_email = $3,
+        date = $4,
+        due_date = $5,
+        subtotal = $6,
+        tax = $7,
+        total_amount = $8,
+        notes = $9
+       WHERE id = $10 AND user_id = $11`,
+      [
+        invoice_number,
+        client_name,
+        client_email,
+        date,
+        due_date,
+        subtotal,
+        tax,
+        total_amount,
+        notes,
+        invoiceId,
+        userId
+      ]
+    );
+
+    // Delete existing invoice items
+    await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
+
+    // Insert updated items
+    for (const item of items) {
+      await client.query(
+        `INSERT INTO invoice_items 
+          (invoice_id, description, quantity, unit_price, total)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [invoiceId, item.description, item.quantity, item.unit_price, item.total]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: 'Invoice updated successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error updating invoice:', err);
+    res.status(500).json({ message: 'Error updating invoice' });
+  } finally {
+    client.release();
+  }
+};
 
 module.exports = {
   createInvoice,
   getAllInvoices,
   getInvoice,
-  sendInvoice
+  sendInvoice,
+  deleteInvoice,
+  updateInvoice
 };
